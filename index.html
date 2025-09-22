@@ -247,6 +247,7 @@
                 chatbox.scrollTop = chatbox.scrollHeight;
             } else {
                 loadingIndicator.classList.add('hidden');
+                userInput.focus(); // 新增此行，讓游標自動回到輸入框
             }
         }
 
@@ -261,6 +262,7 @@
     </script>
 </body>
 </html>
+
 
 
 
