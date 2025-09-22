@@ -36,7 +36,7 @@
         
         // ================== 關鍵設定 ==================
         // 請將此處替換成您 n8n Webhook 的 "Production URL"
-        const webhookUrl = 'https://n8n-befun.zeabur.app/webhook/fa986c62-7935-4ccf-afb9-7ca6c6ae6eee'; 
+        const webhookUrl = 'YOUR_N8N_PRODUCTION_URL_HERE'; 
         // ===============================================
 
         // 這個變數就是我們的「前端記憶體」，負責保管 n8n 傳回的 memory 物件
@@ -71,11 +71,20 @@
 
                 const data = await response.json();
 
+                // [最終修正] 從回傳的陣列中，取出第一個 (也是唯一一個) 項目
+                const responseItem = data[0];
+
+                if (!responseItem) {
+                    throw new Error('Received an empty response from n8n.');
+                }
+
                 // (最關鍵的一步！) 用 n8n 回傳的新記憶體，覆蓋掉舊的
-                memory = data.memory || {};
+                // [最終修正] 從 responseItem 中讀取 memory
+                memory = responseItem.memory || {};
                 
                 // 顯示機器人回覆
-                displayMessage(data.reply, 'bot-message');
+                // [最終修正] 從 responseItem 中讀取 reply
+                displayMessage(responseItem.reply, 'bot-message');
 
             } catch (error) {
                 console.error('Error:', error);
@@ -122,7 +131,4 @@
         });
     </script>
 </body>
-
 </html>
-
-
