@@ -410,14 +410,14 @@ async function searchProjects(searchTerm) {
 
 /**
  * 函式：將從 n8n 取得的專案結果渲染到畫面上
- * @param {Array} projects - 專案物件的陣列，例如 [{project_id: '...', project_name: '...'}]
+ * @param {Array} projects - 專案物件的陣列，例如 [{project_no: '...', project_name: '...'}]
  */
 function renderProjectResults(projects) {
     // 先清空舊的結果
     projectResultsContainer.innerHTML = '';
 
     if (!projects || projects.length === 0) {
-        // 如果沒有結果，可以選擇性地顯示提示，或者保持空白
+        // 如果沒有結果，保持空白
         return; 
     }
 
@@ -425,11 +425,14 @@ function renderProjectResults(projects) {
     projects.forEach(project => {
         const resultItem = document.createElement('div');
         resultItem.className = 'cursor-pointer p-3 text-sm text-gray-700 hover:bg-gray-100 border-b border-gray-200 last:border-b-0';
-        resultItem.textContent = `${project.project_id} - ${project.project_name}`;
         
-        // 監聽點擊事件：當使用者點擊某個結果時，將該 project_id 填入輸入框
+        // ▼▼▼ 主要修改處 ▼▼▼
+        // 使用 project.project_no 和 project.project_name
+        resultItem.textContent = `${project.project_no} - ${project.project_name}`;
+        
+        // 監聽點擊事件：當使用者點擊某個結果時，將該 project_no 填入輸入框
         resultItem.addEventListener('click', () => {
-            projectInput.value = project.project_id; // 填入值
+            projectInput.value = project.project_no; // 填入值
             projectResultsContainer.innerHTML = '';   // 清空結果列表
         });
         
@@ -456,6 +459,7 @@ document.addEventListener('click', (e) => {
     </script>
 </body>
 </html>
+
 
 
 
