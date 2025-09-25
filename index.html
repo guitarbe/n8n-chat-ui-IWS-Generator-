@@ -207,6 +207,8 @@
 
                 // (最關鍵的一步！) 用 n8n 回傳的新記憶體，覆蓋掉舊的
                 memory = responseItem.memory || {};
+
+                updateVendorList(responseItem.vendors);
                 
                 // 顯示機器人回覆的訊息
                 const replyText = responseItem.reply || "抱歉，我沒有收到有效的回覆。";
@@ -220,6 +222,35 @@
             }
         }
 
+/**
+ * 根據傳入的廠商陣列，更新右側面板的廠商列表 UI
+ * @param {Array} vendors - 從 n8n 收到的廠商物件陣列
+ */
+function updateVendorList(vendors) {
+    const candidateList = document.getElementById('candidate-list');
+
+    // 1. 先清空目前列表的內容
+    candidateList.innerHTML = '';
+
+    if (!vendors || vendors.length === 0) {
+        // 2. 如果陣列是空的或不存在，就顯示預設的提示文字
+        candidateList.innerHTML = '<p class="text-gray-400 text-center pt-6">此處將顯示符合條件的廠商...</p>';
+    } else {
+        // 3. 如果陣列內有資料，就遍歷每一家廠商
+        vendors.forEach(vendor => {
+            // 為每家廠商建立一個新的 div 元素
+            const vendorElement = document.createElement('div');
+            // 加上一些 Tailwind CSS 樣式，讓它看起來像個卡片
+            vendorElement.className = 'bg-white p-2 rounded-md shadow-sm text-gray-800 text-sm';
+            // 將廠商的公司名稱設定為元素的文字內容
+            vendorElement.textContent = vendor.company_name;
+            // 將建立好的元素加到列表中
+            candidateList.appendChild(vendorElement);
+        });
+    }
+}
+
+        
         // 將訊息顯示在畫面上
         function displayMessage(text, type) {
             const messageWrapper = document.createElement('div');
@@ -316,6 +347,7 @@
     </script>
 </body>
 </html>
+
 
 
 
