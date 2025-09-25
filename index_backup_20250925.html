@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IWS 產生器</title>
+    <!-- 引入 Tailwind CSS 框架 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Google Fonts 字體 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* 自訂樣式與動畫 */
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+        }
+
+        /* 聊天視窗滾動條美化 */
+        #chatbox::-webkit-scrollbar {
+            width: 6px;
+        }
+        #chatbox::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        #chatbox::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 6px;
+        }
+        #chatbox::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+        
+        /* 打字中... 的動畫效果 */
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.5;
+                transform: scale(0.75);
+            }
+        }
+        .dot-loader {
+            width: 8px;
+            height: 8px;
+            background-color: #6b7280;
+            border-radius: 50%;
+            animation: pulse 1.4s infinite ease-in-out both;
+        }
+        .animation-delay-200 { animation-delay: 0.2s; }
+        .animation-delay-400 { animation-delay: 0.4s; }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+    <div class="chat-container w-full max-w-2xl h-[90vh] max-h-[1000px] bg-white rounded-2xl shadow-2xl flex flex-col">
+        <!-- 聊天室標頭 -->
+        <div class="p-4 border-b border-gray-200 flex items-center justify-between bg-white rounded-t-2xl">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-[#F69C17] rounded-full flex items-center justify-center text-white font-bold text-xl">
+                    N
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-gray-800">IWS 產生器</h1>
+                    <p class="text-sm text-green-500 flex items-center">
+                        <span class="w-2 h-2 bg-green-500 rounded-full mr-1.5"></span>
+                        線上
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 聊天訊息顯示區 -->
+        <div id="chatbox" class="flex-1 p-6 overflow-y-auto space-y-6">
+            <!-- 初始歡迎訊息 -->
+            <div class="flex justify-start">
+                <div class="max-w-lg px-4 py-3 rounded-2xl rounded-bl-none bg-gray-100 text-gray-800 whitespace-pre-wrap">
+                    <p>請輸入欲查詢的公司名稱（全名或簡稱）。<br>例如：「宏達電」、「台達電子」等。</p>
+                </div>
+            </div>
+            
+            <!-- 等待中的動畫模板 (預設隱藏) -->
+            <div id="loading" class="hidden flex justify-start">
+                 <div class="max-w-lg px-4 py-3 rounded-2xl rounded-bl-none bg-gray-100 text-gray-800 flex items-center space-x-2">
+                    <span class="dot-loader"></span>
+                    <span class="dot-loader animation-delay-200"></span>
+                    <span class="dot-loader animation-delay-400"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 輸入區 -->
+        <div class="p-4 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
+            <div class="flex items-center space-x-3">
+                <input type="text" id="userInput" placeholder="輸入公司名稱..." autocomplete="off" class="flex-1 w-full bg-white border border-gray-300 rounded-full px-5 py-3 text-base text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-[#F69C17] focus:outline-none transition duration-200">
+                <button id="sendBtn" class="bg-[#F69C17] text-white rounded-full w-12 h-12 flex items-center justify-center hover:bg-[#E08C0D] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#F69C17] transition-transform duration-200 transform active:scale-95 disabled:bg-[#FADDAF] disabled:cursor-not-allowed">
+                    <!-- 發送 SVG 圖示 -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-send"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chatbox = document.getElementById('chatbox');
+        const userInput = document.getElementById('userInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const loadingIndicator = document.getElementById('loading');
+        
+        // ================== 關鍵設定 ==================
+        // 請將此處替換成您 n8n Webhook 的 "Production URL"
+        const webhookUrl = 'https://n8n-befun.zeabur.app/webhook/fa986c62-7935-4ccf-afb9-7ca6c6ae6eee';  
+        // ===============================================
+
+        // 這個變數就是我們的「前端記憶體」，負責保管 n8n 傳回的 memory 物件
+        let memory = {};
+        let isWaiting = false; // 防止重複發送
+
+        // 處理發送訊息的函式
+        async function sendMessage() {
+            if (isWaiting) return;
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            displayMessage(message, 'user');
+            userInput.value = '';
+            setLoading(true);
+
+            try {
+                const requestBody = {
+                    chatInput: message,
+                    memory: memory 
+                };
+
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP 錯誤! 狀態: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const responseItem = data[0];
+
+                if (!responseItem) {
+                    throw new Error('從 n8n 收到無效或空的回應。');
+                }
+
+                // (最關鍵的一步！) 用 n8n 回傳的新記憶體，覆蓋掉舊的
+                memory = responseItem.memory || {};
+                
+                // 顯示機器人回覆的訊息
+                const replyText = responseItem.reply || "抱歉，我沒有收到有效的回覆。";
+                displayMessage(replyText, 'bot');
+
+            } catch (error) {
+                console.error('錯誤:', error);
+                displayMessage('抱歉，連線發生錯誤，請檢查 n8n workflow 是否已啟用或稍後再試。', 'bot-error');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // 將訊息顯示在畫面上
+        function displayMessage(text, type) {
+            const messageWrapper = document.createElement('div');
+            const messageBubble = document.createElement('div');
+            
+            // 設定訊息泡泡的通用樣式
+            messageBubble.className = 'max-w-lg px-4 py-3 rounded-2xl';
+            messageBubble.innerText = text; // 使用 innerText 以防止 XSS 攻擊
+
+            if (type === 'user') {
+                messageWrapper.className = 'flex justify-end';
+                messageBubble.classList.add('bg-[#F69C17]', 'text-white', 'rounded-br-none');
+                messageWrapper.appendChild(messageBubble);
+            } else { // 包含 'bot' 和 'bot-error'
+                messageWrapper.className = 'flex justify-start';
+                messageBubble.classList.add('whitespace-pre-wrap', 'rounded-bl-none');
+                
+                if (type === 'bot-error') {
+                     messageBubble.classList.add('bg-red-100', 'text-red-800');
+                } else {
+                     messageBubble.classList.add('bg-gray-100', 'text-gray-800');
+                }
+
+                // 為機器人訊息建立一個容器，以便旁邊可以放複製按鈕
+                const botMessageContainer = document.createElement('div');
+                botMessageContainer.className = 'flex items-end space-x-2';
+                botMessageContainer.appendChild(messageBubble);
+
+                // 只為成功的機器人回覆新增複製按鈕
+                if(type === 'bot') {
+                    const copyButton = createCopyButton(text);
+                    botMessageContainer.appendChild(copyButton);
+                }
+                
+                messageWrapper.appendChild(botMessageContainer);
+            }
+
+            chatbox.appendChild(messageWrapper);
+            // 捲動到最新的訊息
+            chatbox.scrollTop = chatbox.scrollHeight;
+        }
+        
+        // 建立複製按鈕
+        function createCopyButton(textToCopy) {
+            const button = document.createElement('button');
+            button.className = 'text-gray-400 hover:text-gray-600 transition-colors duration-200 p-1';
+            button.title = '複製內容';
+            button.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-clipboard" viewBox="0 0 16 16"><path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/><path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/></svg>`;
+            
+            button.onclick = () => copyToClipboard(button, textToCopy);
+            return button;
+        }
+
+        // 複製文字到剪貼簿，並提供視覺回饋
+        function copyToClipboard(button, text) {
+            navigator.clipboard.writeText(text).then(() => {
+                const originalIcon = button.innerHTML;
+                button.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-lg text-green-500" viewBox="0 0 16 16"><path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425a.247.247 0 0 1 .02-.022z"/></svg>`;
+                button.disabled = true;
+                setTimeout(() => {
+                    button.innerHTML = originalIcon;
+                    button.disabled = false;
+                }, 2000);
+            }).catch(err => {
+                console.error('無法複製文字: ', err);
+                // 可以在此處加入一個提示，告知使用者複製失敗
+            });
+        }
+
+
+        // 設定等待狀態
+        function setLoading(isLoading) {
+            isWaiting = isLoading;
+            sendBtn.disabled = isLoading;
+            userInput.disabled = isLoading;
+            
+            if (isLoading) {
+                loadingIndicator.classList.remove('hidden');
+                chatbox.scrollTop = chatbox.scrollHeight;
+            } else {
+                loadingIndicator.classList.add('hidden');
+                userInput.focus(); // 新增此行，讓游標自動回到輸入框
+            }
+        }
+
+        // 監聽事件
+        sendBtn.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) { // 按下 Enter 且沒有按 Shift 時發送
+                e.preventDefault(); // 防止換行
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
