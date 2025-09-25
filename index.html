@@ -17,17 +17,17 @@
         }
 
         /* 聊天視窗滾動條美化 */
-        #chatbox::-webkit-scrollbar {
+        #chatbox::-webkit-scrollbar, #info-content::-webkit-scrollbar, #candidate-list::-webkit-scrollbar {
             width: 6px;
         }
-        #chatbox::-webkit-scrollbar-track {
+        #chatbox::-webkit-scrollbar-track, #info-content::-webkit-scrollbar-track, #candidate-list::-webkit-scrollbar-track {
             background: #f1f1f1;
         }
-        #chatbox::-webkit-scrollbar-thumb {
+        #chatbox::-webkit-scrollbar-thumb, #info-content::-webkit-scrollbar-thumb, #candidate-list::-webkit-scrollbar-thumb {
             background: #d1d5db;
             border-radius: 6px;
         }
-        #chatbox::-webkit-scrollbar-thumb:hover {
+        #chatbox::-webkit-scrollbar-thumb:hover, #info-content::-webkit-scrollbar-thumb:hover, #candidate-list::-webkit-scrollbar-thumb:hover {
             background: #9ca3af;
         }
         
@@ -53,61 +53,115 @@
         .animation-delay-400 { animation-delay: 0.4s; }
     </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
 
-    <div class="chat-container w-full max-w-2xl h-[90vh] max-h-[1000px] bg-white rounded-2xl shadow-2xl flex flex-col">
-        <!-- 聊天室標頭 -->
-        <div class="p-4 border-b border-gray-200 flex items-center justify-between bg-white rounded-t-2xl">
-            <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 bg-[#F69C17] rounded-full flex items-center justify-center text-white font-bold text-xl">
-                    N
+    <!-- 整體佈局容器 -->
+    <main class="w-full max-w-6xl h-[90vh] max-h-[1000px] bg-white rounded-2xl shadow-2xl flex overflow-hidden">
+        
+        <!-- 左側：聊天視窗 -->
+        <div class="w-2/3 flex flex-col border-r border-gray-200">
+            <!-- 聊天室標頭 -->
+            <div class="p-4 border-b border-gray-200 flex items-center justify-between bg-white rounded-tl-2xl flex-shrink-0">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-[#F69C17] rounded-full flex items-center justify-center text-white font-bold text-xl">
+                        N
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold text-gray-800">IWS 產生器</h1>
+                        <p class="text-sm text-green-500 flex items-center">
+                            <span class="w-2 h-2 bg-green-500 rounded-full mr-1.5"></span>
+                            線上
+                        </p>
+                    </div>
                 </div>
-                <div>
-                    <h1 class="text-lg font-bold text-gray-800">IWS 產生器</h1>
-                    <p class="text-sm text-green-500 flex items-center">
-                        <span class="w-2 h-2 bg-green-500 rounded-full mr-1.5"></span>
-                        線上
-                    </p>
+            </div>
+
+            <!-- 聊天訊息顯示區 -->
+            <div id="chatbox" class="flex-1 p-6 overflow-y-auto space-y-6">
+                <!-- 初始歡迎訊息 -->
+                <div class="flex justify-start">
+                    <div class="max-w-lg px-4 py-3 rounded-2xl rounded-bl-none bg-gray-100 text-gray-800 whitespace-pre-wrap">
+                        <p>請輸入欲查詢的公司名稱（全名或簡稱）。<br>例如：「宏達電」、「台達電子」等。</p>
+                    </div>
+                </div>
+                
+                <!-- 等待中的動畫模板 (預設隱藏) -->
+                <div id="loading" class="hidden flex justify-start">
+                     <div class="max-w-lg px-4 py-3 rounded-2xl rounded-bl-none bg-gray-100 text-gray-800 flex items-center space-x-2">
+                        <span class="dot-loader"></span>
+                        <span class="dot-loader animation-delay-200"></span>
+                        <span class="dot-loader animation-delay-400"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 輸入區 -->
+            <div class="p-4 border-t border-gray-200 bg-gray-50 rounded-bl-2xl flex-shrink-0">
+                <div class="flex items-center space-x-3">
+                    <input type="text" id="userInput" placeholder="輸入公司名稱..." autocomplete="off" class="flex-1 w-full bg-white border border-gray-300 rounded-full px-5 py-3 text-base text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-[#F69C17] focus:outline-none transition duration-200">
+                    <button id="sendBtn" class="bg-[#F69C17] text-white rounded-full w-12 h-12 flex items-center justify-center hover:bg-[#E08C0D] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#F69C17] transition-transform duration-200 transform active:scale-95 disabled:bg-[#FADDAF] disabled:cursor-not-allowed">
+                        <!-- 發送 SVG 圖示 -->
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-send"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    </button>
                 </div>
             </div>
         </div>
 
-        <!-- 聊天訊息顯示區 -->
-        <div id="chatbox" class="flex-1 p-6 overflow-y-auto space-y-6">
-            <!-- 初始歡迎訊息 -->
-            <div class="flex justify-start">
-                <div class="max-w-lg px-4 py-3 rounded-2xl rounded-bl-none bg-gray-100 text-gray-800 whitespace-pre-wrap">
-                    <p>請輸入欲查詢的公司名稱（全名或簡稱）。<br>例如：「宏達電」、「台達電子」等。</p>
-                </div>
-            </div>
-            
-            <!-- 等待中的動畫模板 (預設隱藏) -->
-            <div id="loading" class="hidden flex justify-start">
-                 <div class="max-w-lg px-4 py-3 rounded-2xl rounded-bl-none bg-gray-100 text-gray-800 flex items-center space-x-2">
-                    <span class="dot-loader"></span>
-                    <span class="dot-loader animation-delay-200"></span>
-                    <span class="dot-loader animation-delay-400"></span>
-                </div>
-            </div>
-        </div>
+        <!-- 右側：已選定公司資訊 -->
+        <aside class="w-1/3 flex flex-col bg-gray-50">
+            <!-- 資訊顯示區 -->
+            <div id="info-content" class="flex-1 p-6 overflow-y-auto">
+                <div class="space-y-6">
+                    <!-- 選定廠商名單 -->
+                    <div>
+                        <label for="candidate-list" class="block text-sm font-medium text-gray-700 mb-2">選定廠商名單：</label>
+                        <div id="candidate-list" class="w-full bg-gray-100 border border-gray-200 rounded-lg p-3 text-sm text-gray-600 min-h-[120px] max-h-[240px] overflow-y-auto space-y-2">
+                            <!-- 公司名稱會動態加到這裡 -->
+                            <p class="text-gray-400 text-center pt-6">此處將顯示符合條件的廠商...</p>
+                        </div>
+                    </div>
 
-        <!-- 輸入區 -->
-        <div class="p-4 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
-            <div class="flex items-center space-x-3">
-                <input type="text" id="userInput" placeholder="輸入公司名稱..." autocomplete="off" class="flex-1 w-full bg-white border border-gray-300 rounded-full px-5 py-3 text-base text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-[#F69C17] focus:outline-none transition duration-200">
-                <button id="sendBtn" class="bg-[#F69C17] text-white rounded-full w-12 h-12 flex items-center justify-center hover:bg-[#E08C0D] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#F69C17] transition-transform duration-200 transform active:scale-95 disabled:bg-[#FADDAF] disabled:cursor-not-allowed">
-                    <!-- 發送 SVG 圖示 -->
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-send"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                </button>
+                    <!-- 專案編號 -->
+                    <div>
+                        <label for="project-number" class="block text-sm font-medium text-gray-700 mb-2">專案編號：</label>
+                        <input type="text" id="project-number" name="project-number" class="w-full bg-white border border-gray-300 rounded-lg px-4 py-2 text-base text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-[#F69C17] focus:outline-none transition duration-200" placeholder="e.g.: 25C1234A">
+                    </div>
+
+                    <!-- 請購單編號 -->
+                    <div>
+                        <label for="purchase-order" class="block text-sm font-medium text-gray-700 mb-2">請購單編號：</label>
+                        <input type="text" id="purchase-order" name="purchase-order" class="w-full bg-white border border-gray-300 rounded-lg px-4 py-2 text-base text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-[#F69C17] focus:outline-none transition duration-200" placeholder="e.g.: SA0A.01">
+                    </div>
+
+                    <!-- 收件人Email -->
+                    <div>
+                        <label for="recipient-email" class="block text-sm font-medium text-gray-700 mb-2">收件人Email：</label>
+                        <input type="email" id="recipient-email" name="recipient-email" class="w-full bg-white border border-gray-300 rounded-lg px-4 py-2 text-base text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-[#F69C17] focus:outline-none transition duration-200" placeholder="e.g.: John.Yu@ctci.com">
+                    </div>
+
+                    <!-- 按鈕 -->
+                    <div class="mt-6">
+                        <button id="sendIwsBtn" class="w-full bg-[#F69C17] text-white rounded-lg px-4 py-3 flex items-center justify-center space-x-2 hover:bg-[#E08C0D] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#F69C17] transition-transform duration-200 transform active-scale-95 disabled:bg-gray-300 disabled:cursor-not-allowed">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            <span class="font-semibold">寄出IWS</span>
+                        </button>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
+        </aside>
+
+    </main>
 
     <script>
         const chatbox = document.getElementById('chatbox');
         const userInput = document.getElementById('userInput');
         const sendBtn = document.getElementById('sendBtn');
         const loadingIndicator = document.getElementById('loading');
+        // 右側面板 DOM 元素
+        const infoContent = document.getElementById('info-content');
+        const candidateList = document.getElementById('candidate-list');
         
         // ================== 關鍵設定 ==================
         // 請將此處替換成您 n8n Webhook 的 "Production URL"
@@ -211,7 +265,7 @@
         // 建立複製按鈕
         function createCopyButton(textToCopy) {
             const button = document.createElement('button');
-            button.className = 'text-gray-400 hover:text-gray-600 transition-colors duration-200 p-1';
+            button.className = 'text-gray-400 hover:text-gray-600 transition-colors duration-200 p-1 flex-shrink-0';
             button.title = '複製內容';
             button.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-clipboard" viewBox="0 0 16 16"><path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/><path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/></svg>`;
             
@@ -262,8 +316,6 @@
     </script>
 </body>
 </html>
-
-
 
 
 
