@@ -132,8 +132,7 @@
                     <div>
                         <label for="purchase-order" class="block text-sm font-medium text-gray-700 mb-2">請購單編號：</label>
                         <input type="text" id="purchase-order" name="purchase-order" class="w-full bg-white border border-gray-300 rounded-lg px-4 py-2 text-base text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-[#F69C17] focus:outline-none transition duration-200" placeholder="e.g.: SA0A.01">
-                        <p class="text-xs text-gray-500 mt-1">土木工程</p>
-                    </div>
+                        <p id="work-name-display" class="text-xs text-gray-500 mt-1 h-4"></p> </div>
 
                     <!-- 收件人Email -->
                     <div>
@@ -166,12 +165,16 @@
         const candidateList = document.getElementById('candidate-list');
         const projectNumberInput = document.getElementById('project-number');
         const projectNameDisplay = document.getElementById('project-name-display');
+        const purchaseOrderInput = document.getElementById('purchase-order');
+        const workNameDisplay = document.getElementById('work-name-display');
         
         // ================== 關鍵設定 ==================
         // 請將此處替換成您 n8n Webhook 的 "Production URL"
         const webhookUrl = 'https://n8n-befun.zeabur.app/webhook/fa986c62-7935-4ccf-afb9-7ca6c6ae6eee';  
         // 【新增】專案查詢的 Webhook (請貼上您新 workflow 的 Production URL)
         const projectLookupUrl = 'https://n8n-befun.zeabur.app/webhook/ddb5075b-d2ee-4926-8e59-ffb58eb8da70';
+        // 【新增】工作項目查詢的 Webhook
+        const workLookupUrl = 'https://n8n-befun.zeabur.app/webhook/a5780af1-3f94-4ce0-87a5-bb61decaee62';
         // ===============================================
 
         // 這個變數就是我們的「前端記憶體」，負責保管 n8n 傳回的 memory 物件
@@ -361,6 +364,38 @@ function updateVendorList(vendors) {
             projectNameDisplay.classList.add('text-red-500');
         }
     }
+    /**
+     * 【新增】查詢工作名稱的函式
+     * @param {string} projectNo - 專案編號
+     * @param {string} requisitionNo - 請購單編號
+     */
+    async function fetchWorkName(projectNo, requisitionNo) {
+        // 確保兩個參數都存在
+        if (!projectNo || !requisitionNo) {
+            workNameDisplay.textContent = '';
+            return;
+        }
+        workNameDisplay.textContent = '查詢中...';
+        workNameDisplay.classList.remove('text-red-500');
+
+        try {
+            const response = await fetch(workLookupUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    project_no: projectNo, 
+                    requisition_no: requisitionNo 
+                })
+            });
+            if (!response.ok) throw new Error(`HTTP 錯誤!`);
+            const data = await response.json();
+            workNameDisplay.textContent = data.workName || '';
+        } catch (error) {
+            console.error('工作項目查詢錯誤:', error);
+            workNameDisplay.textContent = '查詢失敗';
+            workNameDisplay.classList.add('text-red-500');
+        }
+    }
 
         // 設定等待狀態
         function setLoading(isLoading) {
@@ -385,21 +420,33 @@ function updateVendorList(vendors) {
                 sendMessage();
             }
         });
-        // 【新增】監聽專案編號輸入框的 input 事件
+        // 【修改】專案編號輸入框的監聽事件
     projectNumberInput.addEventListener('input', (e) => {
-        // 清除上一次的計時器，防止頻繁觸發 API
         clearTimeout(debounceTimer);
-        const value = e.target.value.trim();
+        const projectNoValue = e.target.value.trim();
+        const requisitionNoValue = purchaseOrderInput.value.trim();
 
-        // 設定一個 500 毫秒的延遲，使用者停止輸入後才發送請求
         debounceTimer = setTimeout(() => {
-            fetchProjectName(value);
-        }, 500); 
+            fetchProjectName(projectNoValue);
+            fetchWorkName(projectNoValue, requisitionNoValue);
+        }, 500);
+    });
+
+    // 【新增】請購單編號輸入框的監聽事件
+    purchaseOrderInput.addEventListener('input', (e) => {
+        clearTimeout(debounceTimer);
+        const projectNoValue = projectNumberInput.value.trim();
+        const requisitionNoValue = e.target.value.trim();
+
+        debounceTimer = setTimeout(() => {
+            fetchWorkName(projectNoValue, requisitionNoValue);
+        }, 500);
     });
         
     </script>
 </body>
 </html>
+
 
 
 
