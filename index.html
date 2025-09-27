@@ -125,15 +125,14 @@
                     <div>
                         <label for="project-number" class="block text-sm font-medium text-gray-700 mb-2">專案編號：</label>
                         <input type="text" id="project-number" name="project-number" class="w-full bg-white border border-gray-300 rounded-lg px-4 py-2 text-base text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-[#F69C17] focus:outline-none transition duration-200" placeholder="e.g.: 25C1234A">
-                    </div>
-                    <div id="project-results" class="mt-2 w-full max-h-48 overflow-y-auto rounded-md bg-white shadow-lg z-10">
-                        <!-- 搜尋結果會顯示在這裡 -->
+                        <p class="text-xs text-gray-500 mt-1">美光台南三期整改案</p>
                     </div>
 
                     <!-- 請購單編號 -->
                     <div>
                         <label for="purchase-order" class="block text-sm font-medium text-gray-700 mb-2">請購單編號：</label>
                         <input type="text" id="purchase-order" name="purchase-order" class="w-full bg-white border border-gray-300 rounded-lg px-4 py-2 text-base text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-[#F69C17] focus:outline-none transition duration-200" placeholder="e.g.: SA0A.01">
+                        <p class="text-xs text-gray-500 mt-1">土木工程</p>
                     </div>
 
                     <!-- 收件人Email -->
@@ -347,126 +346,9 @@ function updateVendorList(vendors) {
                 sendMessage();
             }
         });
-
-        // ==========================================================
-// ===== 功能：專案編號即時搜尋 (Project Number Live Search) =====
-// ==========================================================
-
-const projectInput = document.getElementById('project-number');
-const projectResultsContainer = document.getElementById('project-results');
-
-// ================== 關鍵設定 ==================
-// 請將此處替換成您【新的】n8n 專案搜尋 Webhook 的 "Production URL"
-const projectSearchWebhookUrl = 'https://n8n-befun.zeabur.app/webhook/ddb5075b-d2ee-4926-8e59-ffb58eb8da70';
-// ===============================================
-
-/**
- * Debounce (防抖) 函式：延遲執行一個函式，直到特定時間內沒有再次被觸發。
- * @param {Function} func - 要執行的函式
- * @param {number} delay - 延遲時間 (毫秒)
- * @returns {Function} - 包裝後的函式
- */
-function debounce(func, delay = 300) {
-    let timeoutId;
-    return (...args) => {
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(() => {
-            func.apply(this, args);
-        }, delay);
-    };
-}
-
-/**
- * 異步函式：根據輸入的關鍵字，向 n8n 發送請求並取得專案列表
- * @param {string} searchTerm - 使用者輸入的搜尋關鍵字
- */
-async function searchProjects(searchTerm) {
-    // 如果輸入為空，就清空結果並直接返回
-    if (!searchTerm.trim()) {
-        renderProjectResults([]);
-        return;
-    }
-
-    try {
-        const response = await fetch(projectSearchWebhookUrl, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-
-            },
-            body: JSON.stringify({ searchTerm: searchTerm })
-        });
-
-        if (!response.ok) {
-            throw new Error(`Webhook 請求失敗，狀態碼: ${response.status}`);
-        }
-
-        const results = await response.json();
-        renderProjectResults(results);
-
-    } catch (error) {
-        console.error('專案搜尋錯誤:', error);
-        // 發生錯誤時，顯示錯誤提示
-        projectResultsContainer.innerHTML = `<div class="p-3 text-sm text-red-600">搜尋時發生錯誤。</div>`;
-    }
-}
-
-/**
- * 函式：將從 n8n 取得的專案結果渲染到畫面上
- * @param {Array} projects - 專案物件的陣列，例如 [{project_no: '...', project_name: '...'}]
- */
-function renderProjectResults(projects) {
-    // 先清空舊的結果
-    projectResultsContainer.innerHTML = '';
-
-    if (!projects || projects.length === 0) {
-        // 如果沒有結果，保持空白
-        return; 
-    }
-
-    // 遍歷每一個專案並建立可點擊的選項
-    projects.forEach(project => {
-        const resultItem = document.createElement('div');
-        resultItem.className = 'cursor-pointer p-3 text-sm text-gray-700 hover:bg-gray-100 border-b border-gray-200 last:border-b-0';
-        
-        // ▼▼▼ 主要修改處 ▼▼▼
-        // 使用 project.project_no 和 project.project_name
-        resultItem.textContent = `${project.project_no} - ${project.project_name}`;
-        
-        // 監聽點擊事件：當使用者點擊某個結果時，將該 project_no 填入輸入框
-        resultItem.addEventListener('click', () => {
-            projectInput.value = project.project_no; // 填入值
-            projectResultsContainer.innerHTML = '';   // 清空結果列表
-        });
-        
-        projectResultsContainer.appendChild(resultItem);
-    });
-}
-
-// 使用 debounce 包裝 searchProjects 函式
-const debouncedSearch = debounce(searchProjects, 300);
-
-// 監聽 "project-number" 輸入框的 'input' 事件
-projectInput.addEventListener('input', (e) => {
-    debouncedSearch(e.target.value);
-});
-
-// 點擊輸入框以外的地方時，隱藏搜尋結果
-document.addEventListener('click', (e) => {
-    if (!projectInput.contains(e.target) && !projectResultsContainer.contains(e.target)) {
-        projectResultsContainer.innerHTML = '';
-    }
-});
-
-        
     </script>
 </body>
 </html>
-
-
-
-
-
 
 
 
