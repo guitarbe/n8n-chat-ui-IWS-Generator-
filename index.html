@@ -418,27 +418,25 @@ function updateVendorList(vendors) {
         }
 
         /**
- * 【新增】將最終資料發送到 n8n 以寫入 Google Sheets
- */
+/**
+* 【修改】將最終資料發送到 n8n 以寫入 Google Sheets，並處理錯誤回應
+*/
 async function sendDataToSheet() {
-    // 獲取所有需要的資料
+    // ... (此處省略獲取資料和驗證的程式碼，保持不變)
     const vendors = memory.vendors || [];
     const projectNo = projectNumberInput.value.trim();
     const purchaseOrder = purchaseOrderInput.value.trim();
     const recipientEmail = document.getElementById('recipient-email').value.trim();
 
-    // 簡單的驗證
     if (vendors.length === 0) {
         alert('尚未選定任何廠商！');
         return;
     }
-    // 【修改】只驗證收件人Email
-if (!recipientEmail) {
-    alert('收件人Email為必填項！');
-    return;
-}
+    if (!recipientEmail) {
+        alert('收件人Email為必填項！');
+        return;
+    }
 
-    // 禁用按鈕，防止重複點擊
     sendIwsBtn.disabled = true;
     sendIwsBtn.textContent = '傳送中...';
 
@@ -456,22 +454,25 @@ if (!recipientEmail) {
             body: JSON.stringify(requestBody),
         });
 
+        // 先解析 n8n 回傳的 JSON
+        const data = await response.json();
+
+        // 檢查 HTTP 狀態碼，如果不 OK，就拋出 n8n 回傳的錯誤訊息
         if (!response.ok) {
-            throw new Error(`HTTP 錯誤! 狀態: ${response.status}`);
+            // 如果 data.message 存在，就用它當作錯誤訊息，否則用通用訊息
+            throw new Error(data.message || `HTTP 錯誤! 狀態: ${response.status}`);
         }
         
-        // 成功後的處理
+        // 如果一切正常 (HTTP 200)，顯示成功訊息
         alert('資料已成功寄出！');
-        // 可以在這裡重置頁面或清空資料
-        // location.reload(); 
 
     } catch (error) {
         console.error('寫入 Google Sheets 時發生錯誤:', error);
-        alert('資料傳送失敗，請檢查網路連線或聯繫管理員。');
+        // 直接顯示從 n8n 來的或自己產生的錯誤訊息
+        alert(error.message); 
     } finally {
-        // 無論成功或失敗，都重新啟用按鈕
+        // ... (恢復按鈕的程式碼保持不變)
         sendIwsBtn.disabled = false;
-        // 恢復按鈕的原始內容 (SVG + 文字)
         sendIwsBtn.innerHTML = `
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -519,6 +520,7 @@ if (!recipientEmail) {
     </script>
 </body>
 </html>
+
 
 
 
