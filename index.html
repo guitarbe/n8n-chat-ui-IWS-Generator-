@@ -169,6 +169,7 @@
         const projectNameDisplay = document.getElementById('project-name-display');
         const purchaseOrderInput = document.getElementById('purchase-order');
         const workNameDisplay = document.getElementById('work-name-display');
+        const sendIwsBtn = document.getElementById('sendIwsBtn');
         
         // ================== 關鍵設定 ==================
         // 請將此處替換成您 n8n Webhook 的 "Production URL"
@@ -414,6 +415,70 @@ function updateVendorList(vendors) {
             }
         }
 
+        /**
+ * 【新增】將最終資料發送到 n8n 以寫入 Google Sheets
+ */
+async function sendDataToSheet() {
+    // 獲取所有需要的資料
+    const vendors = memory.vendors || [];
+    const projectNo = projectNumberInput.value.trim();
+    const purchaseOrder = purchaseOrderInput.value.trim();
+    const recipientEmail = document.getElementById('recipient-email').value.trim();
+
+    // 簡單的驗證
+    if (vendors.length === 0) {
+        alert('尚未選定任何廠商！');
+        return;
+    }
+    if (!projectNo || !purchaseOrder || !recipientEmail) {
+        alert('專案編號、請購單編號和收件人Email為必填項！');
+        return;
+    }
+
+    // 禁用按鈕，防止重複點擊
+    sendIwsBtn.disabled = true;
+    sendIwsBtn.textContent = '傳送中...';
+
+    try {
+        const requestBody = {
+            vendors: vendors,
+            project_no: projectNo,
+            purchase_order: purchaseOrder,
+            recipient_email: recipientEmail,
+        };
+
+        const response = await fetch(writeSheetUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody),
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP 錯誤! 狀態: ${response.status}`);
+        }
+        
+        // 成功後的處理
+        alert('資料已成功寄出！');
+        // 可以在這裡重置頁面或清空資料
+        // location.reload(); 
+
+    } catch (error) {
+        console.error('寫入 Google Sheets 時發生錯誤:', error);
+        alert('資料傳送失敗，請檢查網路連線或聯繫管理員。');
+    } finally {
+        // 無論成功或失敗，都重新啟用按鈕
+        sendIwsBtn.disabled = false;
+        // 恢復按鈕的原始內容 (SVG + 文字)
+        sendIwsBtn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            <span class="font-semibold">寄出IWS</span>
+        `;
+    }
+}
+
+        
         // 監聽事件
         sendBtn.addEventListener('click', sendMessage);
         userInput.addEventListener('keypress', (e) => {
@@ -448,3 +513,4 @@ function updateVendorList(vendors) {
     </script>
 </body>
 </html>
+
