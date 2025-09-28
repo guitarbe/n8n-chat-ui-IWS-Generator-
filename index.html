@@ -432,10 +432,11 @@ async function sendDataToSheet() {
         alert('尚未選定任何廠商！');
         return;
     }
-    if (!projectNo || !purchaseOrder || !recipientEmail) {
-        alert('專案編號、請購單編號和收件人Email為必填項！');
-        return;
-    }
+    // 【修改】只驗證收件人Email
+if (!recipientEmail) {
+    alert('收件人Email為必填項！');
+    return;
+}
 
     // 禁用按鈕，防止重複點擊
     sendIwsBtn.disabled = true;
@@ -518,6 +519,7 @@ async function sendDataToSheet() {
     </script>
 </body>
 </html>
+
 
 
 
