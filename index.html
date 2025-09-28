@@ -511,10 +511,14 @@ async function sendDataToSheet() {
             fetchWorkName(projectNoValue, requisitionNoValue);
         }, 500);
     });
+
+    // 為"寄出IWS"按鈕綁定點擊事件
+    sendIwsBtn.addEventListener('click', sendDataToSheet);
         
     </script>
 </body>
 </html>
+
 
 
 
