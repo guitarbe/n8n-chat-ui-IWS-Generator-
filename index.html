@@ -213,6 +213,7 @@
         let memory = {}; // 核心變數：儲存從 n8n 傳回的對話記憶，每次請求都會帶上它。
         let isWaiting = false; // 狀態旗標：用來防止在等待機器人回覆時，使用者重複發送訊息。
         let debounceTimer; // 計時器：用於輸入框的 debounce 機制，避免使用者每打一個字就發送一次 API 請求。
+        let displayedVendorSet = new Set(); // 新增一個 Set 來追蹤目前顯示的廠商，用於比對並觸發動畫。
 
         /**
          * 函式：發送聊天訊息
@@ -281,39 +282,55 @@
 
         /**
          * 函式：更新右側的廠商列表
-         * 目的：根據從 n8n 收到的廠商資料，動態生成列表的 HTML 元素。
+         * 目的：根據從 n8n 收到的廠商資料，比對現有名單，只對新廠商加上動畫。
          * @param {Array} vendors - 廠商物件陣列，例如 [{ company_name: '公司A' }, { company_name: '公司B' }]
          */
         function updateVendorList(vendors) {
-            // 1. 先清空目前列表的內容
-            candidateList.innerHTML = '';
-
-            // 2. 如果沒有廠商資料，就顯示預設的提示文字
+            // 1. 處理預設情況：如果沒有廠商資料或陣列是空的
             if (!vendors || vendors.length === 0) {
-                candidateList.innerHTML = '<p class="text-gray-400 text-center pt-6">此處將顯示符合條件的廠商...</p>';
-            } else {
-                // 3. 如果有資料，就遍歷陣列，為每一家廠商建立一個 div 元素並加上動畫
-                vendors.forEach((vendor, index) => {
-                    const vendorElement = document.createElement('div');
-                    // 預設樣式
-                    vendorElement.className = 'bg-white p-2 rounded-md shadow-sm text-gray-800 text-sm';
-                    vendorElement.textContent = vendor.company_name;
-                    
-                    // 加上動畫 class 來觸發特效
-                    vendorElement.classList.add('animate-pop-in');
-                    
-                    // 為了讓每個項目依序出現，加上一點延遲
-                    vendorElement.style.animationDelay = `${index * 100}ms`;
-                    
-                    // 動畫結束後，移除 class 和樣式，以便下次能再次觸發
-                    vendorElement.addEventListener('animationend', () => {
-                        vendorElement.classList.remove('animate-pop-in');
-                        vendorElement.style.animationDelay = '';
-                    }, { once: true }); // { once: true } 確保事件只觸發一次
-
-                    candidateList.appendChild(vendorElement);
-                });
+                if (displayedVendorSet.size > 0) { // 只有當之前有名單時才清空
+                    candidateList.innerHTML = '<p class="text-gray-400 text-center pt-6">此處將顯示符合條件的廠商...</p>';
+                    displayedVendorSet.clear();
+                }
+                return; // 結束函式
             }
+            
+            // 如果預設文字還在，先移除它
+            const placeholder = candidateList.querySelector('p');
+            if (placeholder) {
+                placeholder.remove();
+            }
+
+            // 2. 建立新廠商名稱的 Set，方便快速查找
+            const newVendorSet = new Set(vendors.map(v => v.company_name));
+
+            // 3. 找出並移除不存在於新名單中的舊廠商
+            candidateList.querySelectorAll('div').forEach(element => {
+                if (!newVendorSet.has(element.textContent)) {
+                    element.remove();
+                }
+            });
+
+            // 4. 找出並新增新的廠商
+            const vendorsToAdd = vendors.filter(vendor => !displayedVendorSet.has(vendor.company_name));
+            vendorsToAdd.forEach((vendor, index) => {
+                const vendorElement = document.createElement('div');
+                vendorElement.className = 'bg-white p-2 rounded-md shadow-sm text-gray-800 text-sm';
+                vendorElement.textContent = vendor.company_name;
+                
+                vendorElement.classList.add('animate-pop-in');
+                vendorElement.style.animationDelay = `${index * 100}ms`;
+                
+                vendorElement.addEventListener('animationend', () => {
+                    vendorElement.classList.remove('animate-pop-in');
+                    vendorElement.style.animationDelay = '';
+                }, { once: true });
+
+                candidateList.appendChild(vendorElement);
+            });
+
+            // 5. 更新全域的 Set，讓它與畫面上的廠商名單同步
+            displayedVendorSet = newVendorSet;
         }
         
         /**
