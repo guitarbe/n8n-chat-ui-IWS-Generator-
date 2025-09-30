@@ -51,6 +51,24 @@
         }
         .animation-delay-200 { animation-delay: 0.2s; }
         .animation-delay-400 { animation-delay: 0.4s; }
+
+        /* 新增的廠商名稱彈出動畫 */
+        @keyframes pop-in {
+            0% {
+                opacity: 0;
+                transform: scale(0.7) translateY(10px);
+            }
+            80% {
+                opacity: 1;
+                transform: scale(1.05) translateY(0);
+            }
+            100% {
+                transform: scale(1) translateY(0);
+            }
+        }
+        .animate-pop-in {
+            animation: pop-in 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
@@ -274,11 +292,25 @@
             if (!vendors || vendors.length === 0) {
                 candidateList.innerHTML = '<p class="text-gray-400 text-center pt-6">此處將顯示符合條件的廠商...</p>';
             } else {
-                // 3. 如果有資料，就遍歷陣列，為每一家廠商建立一個 div 元素並加到列表中
-                vendors.forEach(vendor => {
+                // 3. 如果有資料，就遍歷陣列，為每一家廠商建立一個 div 元素並加上動畫
+                vendors.forEach((vendor, index) => {
                     const vendorElement = document.createElement('div');
+                    // 預設樣式
                     vendorElement.className = 'bg-white p-2 rounded-md shadow-sm text-gray-800 text-sm';
                     vendorElement.textContent = vendor.company_name;
+                    
+                    // 加上動畫 class 來觸發特效
+                    vendorElement.classList.add('animate-pop-in');
+                    
+                    // 為了讓每個項目依序出現，加上一點延遲
+                    vendorElement.style.animationDelay = `${index * 100}ms`;
+                    
+                    // 動畫結束後，移除 class 和樣式，以便下次能再次觸發
+                    vendorElement.addEventListener('animationend', () => {
+                        vendorElement.classList.remove('animate-pop-in');
+                        vendorElement.style.animationDelay = '';
+                    }, { once: true }); // { once: true } 確保事件只觸發一次
+
                     candidateList.appendChild(vendorElement);
                 });
             }
@@ -573,4 +605,3 @@
     </script>
 </body>
 </html>
-
