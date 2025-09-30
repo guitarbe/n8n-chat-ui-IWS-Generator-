@@ -219,66 +219,79 @@
          * 函式：發送聊天訊息
          * 目的：處理使用者發送訊息的核心流程，包含 UI 更新和 API 請求。
          */
-        async function sendMessage() {
-            // 如果正在等待回覆，則不執行任何動作
-            if (isWaiting) return;
-            const message = userInput.value.trim();
-            // 如果訊息是空的，也不執行任何動作
-            if (!message) return;
+        async function sendDataToSheet() {
+    // 1. 獲取所有需要的資料 (這部分不變)
+    const vendors = memory.vendors || [];
+    const projectNo = projectNumberInput.value.trim();
+    const purchaseOrder = purchaseOrderInput.value.trim();
+    const emailUsername = recipientEmailInput.value.trim();
 
-            // 1. 在畫面上顯示使用者自己發送的訊息
-            displayMessage(message, 'user');
-            // 2. 清空輸入框
-            userInput.value = '';
-            // 3. 進入等待狀態，顯示讀取動畫並禁用輸入
-            setLoading(true);
+    // 2. 簡單的客戶端驗證 (這部分不變)
+    if (vendors.length === 0) {
+        alert('尚未選定任何廠商！');
+        return;
+    }
+    if (!emailUsername) {
+        alert('收件人Email為必填項！');
+        return;
+    }
+    const recipientEmail = `${emailUsername}@ctci.com`;
 
-            try {
-                // 4. 準備要發送到 n8n 的資料
-                const requestBody = {
-                    chatInput: message, // 使用者輸入的內容
-                    memory: memory      // 目前的對話記憶
-                };
+    // 3. 進入發送中狀態 (這部分不變)
+    sendIwsBtn.disabled = true;
+    sendIwsBtn.textContent = '傳送中...';
 
-                // 5. 發送 POST 請求到 n8n
-                const response = await fetch(webhookUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(requestBody)
-                });
+    try {
+        // 4. 發送請求到 n8n (這部分不變)
+        const response = await fetch(writeSheetUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                vendors: vendors,
+                project_no: projectNo,
+                purchase_order: purchaseOrder,
+                recipient_email: recipientEmail,
+            }),
+        });
 
-                // 如果伺服器回應不成功 (e.g., 404, 500)，就拋出錯誤
-                if (!response.ok) {
-                    throw new Error(`HTTP 錯誤! 狀態: ${response.status}`);
-                }
+        const data = await response.json();
 
-                // 6. 解析 n8n 回傳的 JSON 資料
-                const data = await response.json();
-                const responseItem = data[0];
-
-                if (!responseItem) {
-                    throw new Error('從 n8n 收到無效或空的回應。');
-                }
-
-                // 7.【最關鍵的一步】更新前端的對話記憶
-                memory = responseItem.memory || {};
-
-                // 8. 根據回傳的廠商資料，更新右側的廠商列表
-                updateVendorList(responseItem.vendors);
-                
-                // 9. 顯示機器人的回覆訊息
-                const replyText = responseItem.reply || "抱歉，我沒有收到有效的回覆。";
-                displayMessage(replyText, 'bot');
-
-            } catch (error) {
-                // 如果過程中發生任何錯誤，印在 console 並在畫面上顯示錯誤訊息
-                console.error('錯誤:', error);
-                displayMessage('抱歉，連線發生錯誤，請檢查 n8n workflow 是否已啟用或稍後再試。', 'bot-error');
-            } finally {
-                // 10. 不論成功或失敗，最後都要結束等待狀態
-                setLoading(false);
-            }
+        // --- 核心修改處 START ---
+        // 5. 處理 n8n 的回應
+        // 首先，檢查是否有真正的 HTTP 網路錯誤 (例如 n8n 關機導致的 500 錯誤)
+        if (!response.ok) {
+            // 如果有網路錯誤，優先拋出 n8n 回傳的錯誤訊息
+            throw new Error(data.message || `HTTP 網路錯誤! 狀態: ${response.status}`);
         }
+        
+        // 接著，檢查我們自訂的業務邏輯狀態 (status)
+        if (data.status === 'success') {
+            // 如果狀態是 success，就顯示成功訊息
+            alert(data.message); // 直接使用 n8n 傳來的成功訊息
+        } else if (data.status === 'error') {
+            // 如果狀態是 error (例如 Email 無效)，就拋出錯誤，讓 catch 區塊接手
+            throw new Error(data.message);
+        } else {
+            // 如果回傳的 JSON 格式不符預期，也當作錯誤處理
+            throw new Error('收到無法辨識的回應格式。');
+        }
+        // --- 核心修改處 END ---
+
+    } catch (error) {
+        console.error('寫入 Google Sheets 時發生錯誤:', error);
+        // 這個 alert 現在會顯示來自 n8n 的錯誤訊息，例如 "系統維修中。"
+        alert(error.message); 
+    } finally {
+        // 6. 恢復按鈕的原始狀態 (這部分不變)
+        sendIwsBtn.disabled = false;
+        sendIwsBtn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            <span class="font-semibold">寄出IWS</span>
+        `;
+    }
+}
 
         /**
          * 函式：更新右側的廠商列表
