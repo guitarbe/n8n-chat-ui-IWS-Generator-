@@ -101,7 +101,7 @@
                 <!-- 初始歡迎訊息 -->
                 <div class="flex justify-start">
                     <div class="max-w-lg px-4 py-3 rounded-2xl rounded-bl-none bg-gray-100 text-gray-800 whitespace-pre-wrap">
-                        <p>請輸入欲查詢的公司名稱（全名或簡稱）。<br>例如：「宏達電」、「台達電子」等。</p>
+                        <p>請輸入欲查詢的公司名稱（全名或簡稱）。<br>例如：「華豐」、「壯捷」等。</p>
                     </div>
                 </div>
                 
@@ -137,20 +137,20 @@
                         <label for="candidate-list" class="block text-sm font-medium text-gray-700 mb-2">選定廠商名單：</label>
                         <div id="candidate-list" class="w-full bg-gray-100 border border-gray-200 rounded-lg p-3 text-sm text-gray-600 min-h-[120px] max-h-[240px] overflow-y-auto space-y-2">
                             <!-- 公司名稱會動態加到這裡 -->
-                            <p class="text-gray-400 text-center pt-6">此處將顯示符合條件的廠商...</p>
+                            <p class="text-gray-400 text-center pt-6">此處將顯示被選入的廠商...</p>
                         </div>
                     </div>
 
                     <!-- 專案編號 -->
                     <div>
-                        <label for="project-number" class="block text-sm font-medium text-gray-700 mb-2">專案編號：</label>
+                        <label for="project-number" class="block text-sm font-medium text-gray-700 mb-2">專案編號(選填)：</label>
                         <input type="text" id="project-number" name="project-number" class="w-full bg-white border border-gray-300 rounded-lg px-4 py-2 text-base text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-[#F69C17] focus:outline-none transition duration-200" placeholder="e.g.: 25C1234A">
                         <p id="project-name-display" class="text-xs text-gray-500 mt-1 h-4"></p> 
                     </div>
 
                     <!-- 請購單編號 -->
                     <div>
-                        <label for="purchase-order" class="block text-sm font-medium text-gray-700 mb-2">請購單編號：</label>
+                        <label for="purchase-order" class="block text-sm font-medium text-gray-700 mb-2">請購單編號(選填)：</label>
                         <input type="text" id="purchase-order" name="purchase-order" class="w-full bg-white border border-gray-300 rounded-lg px-4 py-2 text-base text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-[#F69C17] focus:outline-none transition duration-200" placeholder="e.g.: SA0A.01">
                         <p id="work-name-display" class="text-xs text-gray-500 mt-1 h-4"></p> </div>
 
@@ -622,6 +622,7 @@
 </script>
 </body>
 </html>
+
 
 
 
