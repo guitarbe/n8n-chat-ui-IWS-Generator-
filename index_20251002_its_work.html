@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IWS 產生器</title>
+    <!-- 引入 Tailwind CSS 框架 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Google Fonts 字體 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* 自訂樣式與動畫 */
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+        }
+
+        /* 聊天視窗滾動條美化 */
+        #chatbox::-webkit-scrollbar, #info-content::-webkit-scrollbar, #candidate-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        #chatbox::-webkit-scrollbar-track, #info-content::-webkit-scrollbar-track, #candidate-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        #chatbox::-webkit-scrollbar-thumb, #info-content::-webkit-scrollbar-thumb, #candidate-list::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 6px;
+        }
+        #chatbox::-webkit-scrollbar-thumb:hover, #info-content::-webkit-scrollbar-thumb:hover, #candidate-list::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+        
+        /* 打字中... 的動畫效果 */
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.5;
+                transform: scale(0.75);
+            }
+        }
+        .dot-loader {
+            width: 8px;
+            height: 8px;
+            background-color: #6b7280;
+            border-radius: 50%;
+            animation: pulse 1.4s infinite ease-in-out both;
+        }
+        .animation-delay-200 { animation-delay: 0.2s; }
+        .animation-delay-400 { animation-delay: 0.4s; }
+
+        /* 新增的廠商名稱彈出動畫 */
+        @keyframes pop-in {
+            0% {
+                opacity: 0;
+                transform: scale(0.7) translateY(10px);
+            }
+            80% {
+                opacity: 1;
+                transform: scale(1.05) translateY(0);
+            }
+            100% {
+                transform: scale(1) translateY(0);
+            }
+        }
+        .animate-pop-in {
+            animation: pop-in 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+
+    <!-- 整體佈局容器 -->
+    <main class="w-full max-w-6xl h-[90vh] max-h-[1000px] bg-white rounded-2xl shadow-2xl flex overflow-hidden">
+        
+        <!-- 左側：聊天視窗 -->
+        <div class="w-2/3 flex flex-col border-r border-gray-200">
+            <!-- 聊天室標頭 -->
+            <div class="p-4 border-b border-gray-200 flex items-center justify-between bg-white rounded-tl-2xl flex-shrink-0">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 text-[#F69C17]">
+                        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2L20.66 7V17L12 22L3.34 17V7L12 2Z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold text-gray-800">IWS 產生器</h1>
+                        <p class="text-sm text-green-500 flex items-center">
+                            <span class="w-2 h-2 bg-green-500 rounded-full mr-1.5"></span>
+                            線上
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 聊天訊息顯示區 -->
+            <div id="chatbox" class="flex-1 p-6 overflow-y-auto space-y-6">
+                <!-- 初始歡迎訊息 -->
+                <div class="flex justify-start">
+                    <div class="max-w-lg px-4 py-3 rounded-2xl rounded-bl-none bg-gray-100 text-gray-800 whitespace-pre-wrap">
+                        <p>請輸入欲查詢的公司名稱（全名或簡稱）。<br>例如：「華豐」、「壯捷」等。</p>
+                    </div>
+                </div>
+                
+                <!-- 等待中的動畫模板 (預設隱藏) -->
+                <div id="loading" class="hidden flex justify-start">
+                     <div class="max-w-lg px-4 py-3 rounded-2xl rounded-bl-none bg-gray-100 text-gray-800 flex items-center space-x-2">
+                        <span class="dot-loader"></span>
+                        <span class="dot-loader animation-delay-200"></span>
+                        <span class="dot-loader animation-delay-400"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 輸入區 -->
+            <div class="p-4 border-t border-gray-200 bg-gray-50 rounded-bl-2xl flex-shrink-0">
+                <div class="flex items-center space-x-3">
+                    <input type="text" id="userInput" placeholder="輸入公司名稱..." autocomplete="off" class="flex-1 w-full bg-white border border-gray-300 rounded-full px-5 py-3 text-base text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-[#F69C17] focus:outline-none transition duration-200">
+                    <button id="sendBtn" class="bg-[#F69C17] text-white rounded-full w-12 h-12 flex items-center justify-center hover:bg-[#E08C0D] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#F69C17] transition-transform duration-200 transform active:scale-95 disabled:bg-[#FADDAF] disabled:cursor-not-allowed">
+                        <!-- 發送 SVG 圖示 -->
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-send"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右側：已選定公司資訊 -->
+        <aside class="w-1/3 flex flex-col bg-gray-50">
+            <!-- 資訊顯示區 -->
+            <div id="info-content" class="flex-1 p-6 overflow-y-auto">
+                <div class="space-y-6">
+                    <!-- 選定廠商名單 -->
+                    <div>
+                        <label for="candidate-list" class="block text-sm font-medium text-gray-700 mb-2">選定廠商名單：</label>
+                        <div id="candidate-list" class="w-full bg-gray-100 border border-gray-200 rounded-lg p-3 text-sm text-gray-600 min-h-[120px] max-h-[240px] overflow-y-auto space-y-2">
+                            <!-- 公司名稱會動態加到這裡 -->
+                            <p class="text-gray-400 text-center pt-6">此處將顯示被選入的廠商...</p>
+                        </div>
+                    </div>
+
+                    <!-- 專案編號 -->
+                    <div>
+                        <label for="project-number" class="block text-sm font-medium text-gray-700 mb-2">專案編號(選填)：</label>
+                        <input type="text" id="project-number" name="project-number" class="w-full bg-white border border-gray-300 rounded-lg px-4 py-2 text-base text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-[#F69C17] focus:outline-none transition duration-200" placeholder="e.g.: 25C1234A">
+                        <p id="project-name-display" class="text-xs text-gray-500 mt-1 h-4"></p> 
+                    </div>
+
+                    <!-- 請購單編號 -->
+                    <div>
+                        <label for="purchase-order" class="block text-sm font-medium text-gray-700 mb-2">請購單編號(選填)：</label>
+                        <input type="text" id="purchase-order" name="purchase-order" class="w-full bg-white border border-gray-300 rounded-lg px-4 py-2 text-base text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-[#F69C17] focus:outline-none transition duration-200" placeholder="e.g.: SA0A.01">
+                        <p id="work-name-display" class="text-xs text-gray-500 mt-1 h-4"></p> </div>
+
+                    <!-- 收件人Email -->
+                    <div>
+                        <label for="recipient-email" class="block text-sm font-medium text-gray-700 mb-2">收件人Email：</label>
+                        <div class="flex items-center">
+                            <input type="text" id="recipient-email" name="recipient-email" class="flex-1 w-full bg-white border border-r-0 border-gray-300 rounded-l-lg px-4 py-2 text-base text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-[#F69C17] focus:z-10 focus:outline-none transition duration-200" placeholder="e.g.: John.Yu">
+                            <span class="inline-flex items-center px-3 text-sm text-gray-500 bg-gray-100 border border-l-0 border-gray-300 rounded-r-lg h-[42px]">
+                                @ctci.com
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- 按鈕 -->
+                    <div class="mt-6">
+                        <button id="sendIwsBtn" class="w-full bg-[#F69C17] text-white rounded-lg px-4 py-3 flex items-center justify-center space-x-2 hover:bg-[#E08C0D] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#F69C17] transition-transform duration-200 transform active:scale-95 disabled:bg-gray-300 disabled:cursor-not-allowed">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            <span class="font-semibold">寄出IWS</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+    </main>
+
+    <script>
+    // --- DOM 元素選取 ---
+    // 目的：預先抓取所有會用到的 HTML 元素，方便後續直接使用。
+    const chatbox = document.getElementById('chatbox');
+    const userInput = document.getElementById('userInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const loadingIndicator = document.getElementById('loading');
+    // 右側面板相關元素
+    const infoContent = document.getElementById('info-content');
+    const candidateList = document.getElementById('candidate-list');
+    const projectNumberInput = document.getElementById('project-number');
+    const projectNameDisplay = document.getElementById('project-name-display');
+    const purchaseOrderInput = document.getElementById('purchase-order');
+    const workNameDisplay = document.getElementById('work-name-display');
+    const recipientEmailInput = document.getElementById('recipient-email');
+    const sendIwsBtn = document.getElementById('sendIwsBtn');
+    
+    // --- n8n Webhook 設定 ---
+    // 目的：集中管理所有與 n8n 溝通的 API 端點，方便未來修改。
+    // 主聊天機器人 Webhook
+    const webhookUrl = 'https://n8n-befun.zeabur.app/webhook/fa986c62-7935-4ccf-afb9-7ca6c6ae6eee';  
+    // 專案查詢 Webhook
+    const projectLookupUrl = 'https://n8n-befun.zeabur.app/webhook/ddb5075b-d2ee-4926-8e59-ffb58eb8da70';
+    // 工作項目查詢 Webhook
+    const workLookupUrl = 'https://n8n-befun.zeabur.app/webhook/a5780af1-3f94-4ce0-87a5-bb61decaee62';
+    // 寫入 Google Sheets Webhook
+    const writeSheetUrl = 'https://n8n-befun.zeabur.app/webhook/d3148d2a-9f24-49a6-96bd-b73b231ae18d';
+    
+    // --- 應用程式狀態變數 ---
+    // 目的：管理整個應用程式的狀態，例如對話歷史、等待狀態等。
+    let memory = {}; // 核心變數：儲存從 n8n 傳回的對話記憶，每次請求都會帶上它。
+    let isWaiting = false; // 狀態旗標：用來防止在等待機器人回覆時，使用者重複發送訊息。
+    let debounceTimer; // 計時器：用於輸入框的 debounce 機制，避免使用者每打一個字就發送一次 API 請求。
+    let displayedVendorSet = new Set(); // 新增一個 Set 來追蹤目前顯示的廠商，用於比對並觸發動畫。
+
+    /**
+     * 【已還原】函式：發送聊天訊息
+     * 目的：處理使用者發送訊息的核心流程，包含 UI 更新和 API 請求。
+     */
+    async function sendMessage() {
+        // 如果正在等待回覆，則不執行任何動作
+        if (isWaiting) return;
+        const message = userInput.value.trim();
+        // 如果訊息是空的，也不執行任何動作
+        if (!message) return;
+
+        // 1. 在畫面上顯示使用者自己發送的訊息
+        displayMessage(message, 'user');
+        // 2. 清空輸入框
+        userInput.value = '';
+        // 3. 進入等待狀態，顯示讀取動畫並禁用輸入
+        setLoading(true);
+
+        try {
+            // 4. 準備要發送到 n8n 的資料
+            const requestBody = {
+                chatInput: message, // 使用者輸入的內容
+                memory: memory      // 目前的對話記憶
+            };
+
+            // 5. 發送 POST 請求到 n8n
+            const response = await fetch(webhookUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody)
+            });
+
+            // 如果伺服器回應不成功 (e.g., 404, 500)，就拋出錯誤
+            if (!response.ok) {
+                throw new Error(`HTTP 錯誤! 狀態: ${response.status}`);
+            }
+
+            // 6. 解析 n8n 回傳的 JSON 資料
+            const data = await response.json();
+            const responseItem = data[0];
+
+            if (!responseItem) {
+                throw new Error('從 n8n 收到無效或空的回應。');
+            }
+
+            // 7.【最關鍵的一步】更新前端的對話記憶
+            memory = responseItem.memory || {};
+
+            // 8. 根據回傳的廠商資料，更新右側的廠商列表
+            updateVendorList(responseItem.vendors);
+            
+            // 9. 顯示機器人的回覆訊息
+            const replyText = responseItem.reply || "抱歉，我沒有收到有效的回覆。";
+            displayMessage(replyText, 'bot');
+
+        } catch (error) {
+            // 如果過程中發生任何錯誤，印在 console 並在畫面上顯示錯誤訊息
+            console.error('錯誤:', error);
+            displayMessage('抱歉，連線發生錯誤，請檢查 n8n workflow 是否已啟用或稍後再試。', 'bot-error');
+        } finally {
+            // 10. 不論成功或失敗，最後都要結束等待狀態
+            setLoading(false);
+        }
+    }
+
+    /**
+     * 函式：更新右側的廠商列表
+     * 目的：根據從 n8n 收到的廠商資料，比對現有名單，只對新廠商加上動畫。
+     * @param {Array} vendors - 廠商物件陣列，例如 [{ company_name: '公司A' }, { company_name: '公司B' }]
+     */
+    function updateVendorList(vendors) {
+        // 1. 處理預設情況：如果沒有廠商資料或陣列是空的
+        if (!vendors || vendors.length === 0) {
+            if (displayedVendorSet.size > 0) { // 只有當之前有名單時才清空
+                candidateList.innerHTML = '<p class="text-gray-400 text-center pt-6">此處將顯示符合條件的廠商...</p>';
+                displayedVendorSet.clear();
+            }
+            return; // 結束函式
+        }
+        
+        // 如果預設文字還在，先移除它
+        const placeholder = candidateList.querySelector('p');
+        if (placeholder) {
+            placeholder.remove();
+        }
+
+        // 2. 建立新廠商名稱的 Set，方便快速查找
+        const newVendorSet = new Set(vendors.map(v => v.company_name));
+
+        // 3. 找出並移除不存在於新名單中的舊廠商
+        candidateList.querySelectorAll('div').forEach(element => {
+            if (!newVendorSet.has(element.textContent)) {
+                element.remove();
+            }
+        });
+
+        // 4. 找出並新增新的廠商
+        const vendorsToAdd = vendors.filter(vendor => !displayedVendorSet.has(vendor.company_name));
+        vendorsToAdd.forEach((vendor, index) => {
+            const vendorElement = document.createElement('div');
+            vendorElement.className = 'bg-white p-2 rounded-md shadow-sm text-gray-800 text-sm';
+            vendorElement.textContent = vendor.company_name;
+            
+            vendorElement.classList.add('animate-pop-in');
+            vendorElement.style.animationDelay = `${index * 100}ms`;
+            
+            vendorElement.addEventListener('animationend', () => {
+                vendorElement.classList.remove('animate-pop-in');
+                vendorElement.style.animationDelay = '';
+            }, { once: true });
+
+            candidateList.appendChild(vendorElement);
+        });
+
+        // 5. 更新全域的 Set，讓它與畫面上的廠商名單同步
+        displayedVendorSet = newVendorSet;
+    }
+    
+    /**
+     * 函式：在畫面上顯示訊息
+     * 目的：根據訊息的類型（使用者或機器人），建立對應樣式的對話泡泡。
+     * @param {string} text - 要顯示的文字內容
+     * @param {string} type - 訊息類型，可以是 'user', 'bot', 或 'bot-error'
+     */
+    function displayMessage(text, type) {
+        const messageWrapper = document.createElement('div'); // 外層容器，用來控制靠左或靠右
+        const messageBubble = document.createElement('div');   // 內層泡泡
+        
+        messageBubble.className = 'max-w-lg px-4 py-3 rounded-2xl';
+        messageBubble.innerText = text; // 使用 innerText 可以避免惡意 HTML 注入 (XSS)
+
+        if (type === 'user') {
+            // 使用者訊息：靠右，橘色背景
+            messageWrapper.className = 'flex justify-end';
+            messageBubble.classList.add('bg-[#F69C17]', 'text-white', 'rounded-br-none');
+            messageWrapper.appendChild(messageBubble);
+        } else { // 包含 'bot' 和 'bot-error'
+            // 機器人訊息：靠左
+            messageWrapper.className = 'flex justify-start';
+            messageBubble.classList.add('whitespace-pre-wrap', 'rounded-bl-none');
+            
+            if (type === 'bot-error') {
+                 // 錯誤訊息：紅色背景
+                 messageBubble.classList.add('bg-red-100', 'text-red-800');
+            } else {
+                 // 一般訊息：灰色背景
+                 messageBubble.classList.add('bg-gray-100', 'text-gray-800');
+            }
+
+            const botMessageContainer = document.createElement('div');
+            botMessageContainer.className = 'flex items-end space-x-2';
+            botMessageContainer.appendChild(messageBubble);
+
+            // 只為成功的機器人回覆加上複製按鈕
+            if(type === 'bot') {
+                const copyButton = createCopyButton(text);
+                botMessageContainer.appendChild(copyButton);
+            }
+            
+            messageWrapper.appendChild(botMessageContainer);
+        }
+
+        chatbox.appendChild(messageWrapper);
+        chatbox.scrollTop = chatbox.scrollHeight; // 自動捲動到最下方
+    }
+    
+    /**
+     * 函式：建立複製按鈕
+     * 目的：產生一個帶有 SVG 圖示的按鈕元素。
+     * @param {string} textToCopy - 按下按鈕後要複製的文字
+     * @returns {HTMLButtonElement} - 建立好的按鈕元素
+     */
+    function createCopyButton(textToCopy) {
+        const button = document.createElement('button');
+        button.className = 'text-gray-400 hover:text-gray-600 transition-colors duration-200 p-1 flex-shrink-0';
+        button.title = '複製內容';
+        button.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-clipboard" viewBox="0 0 16 16"><path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/><path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/></svg>`;
+        button.onclick = () => copyToClipboard(button, textToCopy);
+        return button;
+    }
+
+    /**
+     * 函式：複製文字到剪貼簿
+     * 目的：執行複製動作，並提供 2 秒的視覺回饋（圖示變為打勾）。
+     * @param {HTMLButtonElement} button - 被點擊的按鈕元素
+     * @param {string} text - 要複製的文字
+     */
+    function copyToClipboard(button, text) {
+        navigator.clipboard.writeText(text).then(() => {
+            const originalIcon = button.innerHTML;
+            // 暫時將圖示換成綠色打勾
+            button.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-lg text-green-500" viewBox="0 0 16 16"><path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425a.247.247 0 0 1 .02-.022z"/></svg>`;
+            button.disabled = true;
+            // 2秒後換回原本的圖示
+            setTimeout(() => {
+                button.innerHTML = originalIcon;
+                button.disabled = false;
+            }, 2000);
+        }).catch(err => {
+            console.error('無法複製文字: ', err);
+        });
+    }
+
+    /**
+     * 函式：查詢專案名稱
+     * 目的：根據輸入的專案編號，非同步地向 n8n 查詢對應的專案名稱。
+     * @param {string} projectNo - 使用者輸入的專案編號
+     */
+    async function fetchProjectName(projectNo) {
+        if (!projectNo) {
+            projectNameDisplay.textContent = '';
+            return;
+        }
+        projectNameDisplay.textContent = '查詢中...';
+        projectNameDisplay.classList.remove('text-red-500');
+
+        try {
+            const response = await fetch(projectLookupUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ project_no: projectNo })
+            });
+
+            if (!response.ok) throw new Error(`HTTP 錯誤!`);
+            
+            const data = await response.json();
+            projectNameDisplay.textContent = data.projectName || '';
+        } catch (error) {
+            console.error('專案查詢錯誤:', error);
+            projectNameDisplay.textContent = '查無資料';
+            projectNameDisplay.classList.add('text-red-500');
+        }
+    }
+    
+    /**
+     * 函式：查詢工作項目名稱
+     * 目的：根據專案編號和請購單編號，查詢對應的工作項目名稱。
+     * @param {string} projectNo - 專案編號
+     * @param {string} requisitionNo - 請購單編號
+     */
+    async function fetchWorkName(projectNo, requisitionNo) {
+        if (!projectNo || !requisitionNo) {
+            workNameDisplay.textContent = '';
+            return;
+        }
+        workNameDisplay.textContent = '查詢中...';
+        workNameDisplay.classList.remove('text-red-500');
+
+        try {
+            const response = await fetch(workLookupUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    project_no: projectNo, 
+                    requisition_no: requisitionNo 
+                })
+            });
+            if (!response.ok) throw new Error(`HTTP 錯誤!`);
+            const data = await response.json();
+            workNameDisplay.textContent = data.workName || '';
+        } catch (error) {
+            console.error('工作項目查詢錯誤:', error);
+            workNameDisplay.textContent = '查無資料';
+            workNameDisplay.classList.add('text-red-500');
+        }
+    }
+
+    /**
+     * 函式：設定等待狀態
+     * 目的：統一管理應用程式在等待 API 回應時的 UI 變化。
+     * @param {boolean} isLoading - 是否正在等待
+     */
+    function setLoading(isLoading) {
+        isWaiting = isLoading;
+        sendBtn.disabled = isLoading; // 禁用/啟用發送按鈕
+        userInput.disabled = isLoading; // 禁用/啟用輸入框
+        
+        if (isLoading) {
+            loadingIndicator.classList.remove('hidden'); // 顯示讀取動畫
+            chatbox.scrollTop = chatbox.scrollHeight;
+        } else {
+            loadingIndicator.classList.add('hidden'); // 隱藏讀取動畫
+            userInput.focus(); // 讓游標自動回到輸入框，方便下次輸入
+        }
+    }
+
+    /**
+     * 【已修正】函式：將資料發送到 Google Sheets
+     * 目的：收集右側面板的所有資料，發送到 n8n，由 n8n 寫入 Google Sheets，並處理成功或失敗的回應。
+     */
+    async function sendDataToSheet() {
+        // 1. 獲取所有需要的資料
+        const vendors = memory.vendors || [];
+        const projectNo = projectNumberInput.value.trim();
+        const purchaseOrder = purchaseOrderInput.value.trim();
+        const emailUsername = recipientEmailInput.value.trim();
+
+        // 2. 簡單的客戶端驗證
+        if (vendors.length === 0) {
+            alert('尚未選定任何廠商！');
+            return;
+        }
+        if (!emailUsername) {
+            alert('收件人Email為必填項！');
+            return;
+        }
+        const recipientEmail = `${emailUsername}@ctci.com`;
+
+        // 3. 進入發送中狀態，禁用按鈕並更新文字
+        sendIwsBtn.disabled = true;
+        sendIwsBtn.textContent = '傳送中...';
+
+        try {
+            // 4. 準備要發送到 n8n 的資料
+            const response = await fetch(writeSheetUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    vendors: vendors,
+                    project_no: projectNo,
+                    purchase_order: purchaseOrder,
+                    recipient_email: recipientEmail,
+                }),
+            });
+
+            const data = await response.json();
+
+            // 5. 處理 n8n 的回應
+            if (!response.ok) {
+                throw new Error(data.message || `HTTP 網路錯誤! 狀態: ${response.status}`);
+            }
+            
+            if (data.status === 'success') {
+                alert(data.message);
+            } else if (data.status === 'error') {
+                throw new Error(data.message);
+            } else {
+                throw new Error('收到無法辨識的回應格式。');
+            }
+        } catch (error) {
+            console.error('寫入 Google Sheets 時發生錯誤:', error);
+            alert(error.message); 
+        } finally {
+            // 6. 不論成功或失敗，都要恢復按鈕的原始狀態
+            sendIwsBtn.disabled = false;
+            sendIwsBtn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                <span class="font-semibold">寄出IWS</span>
+            `;
+        }
+    }
+    
+    // --- 事件監聽器 ---
+    // 目的：綁定使用者的操作 (如點擊、按鍵) 與對應的函式。
+
+    // 監聽「發送」按鈕的點擊事件
+    sendBtn.addEventListener('click', sendMessage);
+
+    // 監聽聊天輸入框的鍵盤事件
+    userInput.addEventListener('keypress', (e) => {
+        // 如果按下的是 Enter 鍵 (且沒有同時按 Shift)，就發送訊息
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault(); // 防止 Enter 鍵在輸入框中換行
+            sendMessage();
+        }
+    });
+
+    // 監聽「專案編號」輸入框的輸入事件 (使用 debounce)
+    projectNumberInput.addEventListener('input', (e) => {
+        clearTimeout(debounceTimer); // 清除上一次的計時器
+        const projectNoValue = e.target.value.trim();
+        const requisitionNoValue = purchaseOrderInput.value.trim();
+
+        // 設立一個 500 毫秒的延遲，使用者停止輸入半秒後才觸發查詢
+        debounceTimer = setTimeout(() => {
+            fetchProjectName(projectNoValue); // 查詢專案名稱
+            fetchWorkName(projectNoValue, requisitionNoValue); // 同時也觸發工作項目查詢
+        }, 500);
+    });
+
+    // 監聽「請購單編號」輸入框的輸入事件 (使用 debounce)
+    purchaseOrderInput.addEventListener('input', (e) => {
+        clearTimeout(debounceTimer);
+        const projectNoValue = projectNumberInput.value.trim();
+        const requisitionNoValue = e.target.value.trim();
+
+        debounceTimer = setTimeout(() => {
+            fetchWorkName(projectNoValue, requisitionNoValue);
+        }, 500);
+    });
+
+    // 監聽「寄出IWS」按鈕的點擊事件
+    sendIwsBtn.addEventListener('click', sendDataToSheet);
+    
+    // 監聽「收件人Email」輸入框的輸入事件，防止輸入 @
+    recipientEmailInput.addEventListener('input', (e) => {
+        if (e.target.value.includes('@')) {
+            alert('請勿輸入 "@" 符號，系統將會自動加上 "@ctci.com"。');
+            e.target.value = e.target.value.replace(/@/g, ''); // 移除所有 @ 符號
+        }
+    });
+    
+</script>
+</body>
+</html>
+
+
+
+
